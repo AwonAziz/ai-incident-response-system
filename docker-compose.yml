@@ -1,0 +1,34 @@
+version: "3.9"
+
+services:
+  incident-response:
+    build: .
+    container_name: ai-incident-response
+    restart: unless-stopped
+    environment:
+      - COLLECTION_INTERVAL=5
+      - DEDUP_WINDOW=60
+      - AUTO_RESOLVE_MINUTES=10
+      - MODEL_CONTAMINATION=0.05
+      - LOG_LEVEL=INFO
+      # Uncomment and fill in to activate real notifications:
+      # - SLACK_WEBHOOK_URL=https://hooks.slack.com/services/xxx
+      # - PAGERDUTY_ROUTING_KEY=your_key_here
+    volumes:
+      - ./models:/app/models       # Persist trained model
+      - ./logs:/app/logs           # Persist logs
+    command: python main.py --no-dashboard
+
+  # Inject a test anomaly spike every 60 seconds (demo mode)
+  anomaly-injector:
+    build: .
+    container_name: anomaly-injector
+    depends_on:
+      - incident-response
+    command: >
+      sh -c "while true; do
+               python scripts/simulate_incident.py --cloud all --count 1;
+               sleep 60;
+             done"
+    profiles:
+      - demo   # Only runs with: docker compose --profile demo up
