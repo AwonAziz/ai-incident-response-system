@@ -1,4 +1,4 @@
-# 🛡️ AI-Powered Incident Response System
+# AI-Powered Incident Response System
 
 <div align="center">
 
@@ -91,32 +91,32 @@ It simulates a production-grade AIOps platform, demonstrating:
 
 ## Features
 
-### 🔍 Real-Time Anomaly Detection
+### Real-Time Anomaly Detection
 - **Isolation Forest** unsupervised ML model trained on baseline metrics
 - Sliding window feature engineering (mean, std, rate-of-change)
 - Confidence scoring for every prediction
 - Automatic model retraining when drift is detected
 
-### ☁️ Multi-Cloud Telemetry
+### Multi-Cloud Telemetry
 | Cloud | Simulated Services | Metrics |
 |-------|-------------------|---------|
 | AWS | EC2, Lambda, RDS, ELB | CPU, memory, latency, error rate, disk I/O |
 | Azure | AKS, VMs, App Service | CPU, memory, request rate, response time |
 | GCP | GKE, Compute Engine, Cloud SQL | CPU, memory, network I/O, query latency |
 
-### 🚨 Intelligent Triage
+### Intelligent Triage
 - 4-tier severity classification: `CRITICAL → HIGH → MEDIUM → LOW`
 - Automated root cause hint generation
 - Incident deduplication (prevents alert storms)
 - SLA breach prediction
 
-### 📊 Live Dashboard
+### Live Dashboard
 - Real-time terminal UI with color-coded alerts
 - Per-cloud metric summaries
 - Incident feed with timestamps and severity
 - Model performance stats (precision, recall, anomaly rate)
 
-### 🔔 Notification Pipeline
+### Notification Pipeline
 - Pluggable notifier architecture (Slack, PagerDuty, Email, Webhook)
 - Alert routing by severity
 - Rate limiting and cooldown windows
