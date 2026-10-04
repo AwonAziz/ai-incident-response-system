@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   incident-response:
     build: .
@@ -9,26 +7,52 @@ services:
       - COLLECTION_INTERVAL=5
       - DEDUP_WINDOW=60
       - AUTO_RESOLVE_MINUTES=10
-      - MODEL_CONTAMINATION=0.05
+      - MODEL_CONTAMINATION=0.02
+      - INJECT_ANOMALY=false
+      - DRIFT_THRESHOLD=0.35
       - LOG_LEVEL=INFO
       # Uncomment and fill in to activate real notifications:
       # - SLACK_WEBHOOK_URL=https://hooks.slack.com/services/xxx
       # - PAGERDUTY_ROUTING_KEY=your_key_here
+      # - EMAIL_TO=sre@example.com
+      # - EMAIL_SMTP_HOST=smtp.example.com
+    ports:
+      - "8080:8080"
     volumes:
-      - ./models:/app/models       # Persist trained model
-      - ./logs:/app/logs           # Persist logs
-    command: python main.py --no-dashboard
+      - ./models:/app/models   # Persist the trained model
+      - ./logs:/app/logs       # Persist logs
+    command: python main.py --no-dashboard --api
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3).status == 200 else 1)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
-  # Inject a test anomaly spike every 60 seconds (demo mode)
+  # Pushes a fresh multi-cloud anomaly into the running pipeline every 60s.
+  # Run with:  docker compose --profile demo up
   anomaly-injector:
     build: .
     container_name: anomaly-injector
     depends_on:
-      - incident-response
-    command: >
-      sh -c "while true; do
-               python scripts/simulate_incident.py --cloud all --count 1;
-               sleep 60;
-             done"
+      incident-response:
+        condition: service_healthy
+    command:
+      - python
+      - scripts/simulate_incident.py
+      - --cloud
+      - all
+      - --count
+      - "3"
+      - --loop
+      - "0"
+      - --interval
+      - "60"
+      - --push
+      - http://incident-response:8080/inject
     profiles:
-      - demo   # Only runs with: docker compose --profile demo up
+      - demo
