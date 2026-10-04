@@ -162,7 +162,11 @@ def _stamp(value: datetime | None) -> str | None:
 
 
 def _moment(raw: str | None) -> datetime | None:
-    return datetime.fromisoformat(raw) if raw else None
+    if not raw:
+        return None
+    from src.data.timeseries import parse_timestamp
+
+    return parse_timestamp(raw)
 
 
 class IncidentStore:

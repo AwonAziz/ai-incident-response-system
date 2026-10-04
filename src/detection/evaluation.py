@@ -40,7 +40,7 @@ from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, ClassVar, Self
+from typing import Any, ClassVar
 
 import numpy as np
 
@@ -144,7 +144,7 @@ class DetectionScorer(ABC):
         self.protocol = protocol or EvaluationProtocol()
         self.options = options
 
-    def fit(self, metrics: Sequence[Metric], series: LabelledSeries) -> Self:
+    def fit(self, metrics: Sequence[Metric], series: LabelledSeries) -> DetectionScorer:
         """Learn parameters from the training slice."""
         return self
 
@@ -211,7 +211,7 @@ class GlobalThresholdScorer(DetectionScorer):
         self.k = self.protocol.global_k if k is None else float(k)
         self._threshold: float | None = None
 
-    def fit(self, metrics: Sequence[Metric], series: LabelledSeries) -> Self:
+    def fit(self, metrics: Sequence[Metric], series: LabelledSeries) -> GlobalThresholdScorer:
         values = np.asarray([metric.value for metric in metrics], dtype=np.float64)
         if values.size:
             self._threshold = float(values.mean() + self.k * values.std())
@@ -268,7 +268,7 @@ class EWMAScorer(DetectionScorer):
         self._variance = 0.0
         self._observations = 0
 
-    def fit(self, metrics: Sequence[Metric], series: LabelledSeries) -> Self:
+    def fit(self, metrics: Sequence[Metric], series: LabelledSeries) -> EWMAScorer:
         values = np.asarray([metric.value for metric in metrics], dtype=np.float64)
         if values.size >= 2:
             self._fit_mean = float(values.mean())
@@ -343,7 +343,7 @@ class IsolationForestScorer(DetectionScorer):
             ),
         )
 
-    def fit(self, metrics: Sequence[Metric], series: LabelledSeries) -> Self:
+    def fit(self, metrics: Sequence[Metric], series: LabelledSeries) -> IsolationForestScorer:
         if len(metrics) < 50:
             raise ValueError(f"{series.name}: need at least 50 training points, got {len(metrics)}")
         self.detector.train(list(metrics))

@@ -242,11 +242,14 @@ def parse_timestamp(value: str) -> datetime:
     """Parse a NAB timestamp into an aware UTC datetime.
 
     Accepts NAB's ``%Y-%m-%d %H:%M:%S[.%f]`` and ISO-8601 (with or without an
-    offset), so anything this module serialises can be read back.
+    offset), so anything this module serialises can be read back. The trailing
+    ``Z`` is rewritten by hand because ``datetime.fromisoformat`` only learned to
+    parse it in Python 3.11.
     """
     token = value.strip()
+    normalised = f"{token[:-1]}+00:00" if token.endswith(("Z", "z")) else token
     try:
-        parsed = datetime.fromisoformat(token)
+        parsed = datetime.fromisoformat(normalised)
     except ValueError:
         parsed = None  # fall through to the explicit formats below
     else:

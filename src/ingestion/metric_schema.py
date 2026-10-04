@@ -163,7 +163,12 @@ class Metric:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Metric:
         timestamp = data.get("timestamp")
-        parsed = datetime.fromisoformat(timestamp) if isinstance(timestamp, str) else utc_now()
+        if isinstance(timestamp, str):
+            from src.data.timeseries import parse_timestamp
+
+            parsed = parse_timestamp(timestamp)
+        else:
+            parsed = utc_now()
         window_data = data.get("window")
         window = None
         if isinstance(window_data, dict):
