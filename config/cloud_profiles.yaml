@@ -1,0 +1,135 @@
+# Cloud telemetry profiles.
+#
+# Single source of truth for:
+#   * which services/metrics each cloud exposes
+#   * the "normal" band used by the telemetry simulator
+#   * the static thresholds used by the rule engine
+#   * triage weights and escalation hints
+#
+# Units are documented next to every metric. Every threshold is expressed in
+# the metric's own unit.
+
+version: 1
+
+defaults:
+  history_window: 30        # rolling window length (samples) kept per series
+  min_history: 5            # samples required before ML scoring is trusted
+
+metrics:
+  cpu_utilization:
+    label: CPU
+    unit: "%"
+    normal: [12, 78]
+    warn_high: 78
+    critical_high: 92
+    weight: 1.0
+    spike_z: 4.0
+  memory_utilization:
+    label: Memory
+    unit: "%"
+    normal: [20, 80]
+    warn_high: 80
+    critical_high: 93
+    weight: 1.1
+    spike_z: 4.0
+  latency_ms:
+    label: Latency
+    unit: "ms"
+    normal: [8, 170]
+    warn_high: 170
+    critical_high: 380
+    weight: 1.2
+    spike_z: 3.5
+  error_rate:
+    label: Error rate
+    unit: "%"
+    normal: [0.0, 1.2]
+    warn_high: 1.2
+    critical_high: 4.5
+    weight: 1.6
+    spike_z: 4.0
+  disk_io_utilization:
+    label: Disk I/O
+    unit: "%"
+    normal: [5, 75]
+    warn_high: 75
+    critical_high: 92
+    weight: 1.0
+    spike_z: 4.0
+  request_rate:
+    label: Request rate
+    unit: "rps"
+    normal: [40, 620]
+    warn_high: 780
+    critical_high: 1100
+    weight: 0.9
+    spike_z: 3.5
+  response_time_ms:
+    label: Response time
+    unit: "ms"
+    normal: [15, 260]
+    warn_high: 260
+    critical_high: 620
+    weight: 1.2
+    spike_z: 3.5
+  network_io_mbps:
+    label: Network I/O
+    unit: "Mbps"
+    normal: [4, 380]
+    warn_high: 420
+    critical_high: 760
+    weight: 0.9
+    spike_z: 3.5
+  query_latency_ms:
+    label: Query latency
+    unit: "ms"
+    normal: [4, 110]
+    warn_high: 110
+    critical_high: 260
+    weight: 1.1
+    spike_z: 3.5
+
+severity_factors:      # how much a violation of each severity adds to triage score
+  critical: 3.0
+  high: 2.0
+  medium: 1.2
+  low: 0.5
+
+sla_targets_minutes:    # acknowledgement targets per incident severity
+  critical: 15
+  high: 60
+  medium: 240
+  low: 1440
+
+clouds:
+  aws:
+    display_name: AWS
+    metrics: [cpu_utilization, memory_utilization, latency_ms, error_rate, disk_io_utilization]
+    resources:
+      - {id: "i-0a1f9c4d2e7b8a31", service: EC2, region: us-east-1}
+      - {id: "i-0b3e7d5c9f1a24e00", service: EC2, region: us-west-2}
+      - {id: "arn:aws:lambda:us-east-1:123456789012:function:checkout-api", service: Lambda, region: us-east-1}
+      - {id: "payments-db", service: RDS, region: us-east-1}
+      - {id: "public-elb", service: ELB, region: us-east-1}
+    overrides:
+      error_rate:
+        critical_high: 3.0      # payments traffic is more sensitive
+
+  azure:
+    display_name: Azure
+    metrics: [cpu_utilization, memory_utilization, request_rate, response_time_ms, error_rate]
+    resources:
+      - {id: "aks-prod-cluster", service: AKS, region: eastus}
+      - {id: "vm-app-orders-01", service: VM, region: westeurope}
+      - {id: "app-orders-prod", service: AppService, region: eastus}
+    overrides:
+      response_time_ms:
+        critical_high: 500
+
+  gcp:
+    display_name: GCP
+    metrics: [cpu_utilization, memory_utilization, network_io_mbps, query_latency_ms, error_rate]
+    resources:
+      - {id: "gke-prod-cluster", service: GKE, region: us-central1}
+      - {id: "gce-worker-3", service: ComputeEngine, region: europe-west1}
+      - {id: "cloudsql-postgres-main", service: CloudSQL, region: us-central1}
