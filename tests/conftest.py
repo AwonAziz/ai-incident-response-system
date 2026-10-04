@@ -9,22 +9,29 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+import sys
 from pathlib import Path
 
 import pytest
 
-from config.settings import get_settings
-from src.core.clock import ManualClock
-from src.core.enums import Cloud, Severity
-from src.detection.anomaly_detector import AnomalyDetector
-from src.detection.trainer import build_training_set, train_detector
-from src.ingestion import SeriesHistory
-from src.ingestion.metric_schema import Metric
-from src.triage.incident_manager import Incident, IncidentManager
-from src.triage.root_cause import Hypothesis
-from src.triage.triage_engine import TriageEngine
-
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+# `pythonpath = ["."]` in pyproject.toml covers pytest runs, but a bare
+# `python tests/test_x.py`, an IDE runner or an older pytest still needs the
+# repository root importable before the first-party imports below.
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from config.settings import get_settings  # noqa: E402
+from src.core.clock import ManualClock  # noqa: E402
+from src.core.enums import Cloud, Severity  # noqa: E402
+from src.detection.anomaly_detector import AnomalyDetector  # noqa: E402
+from src.detection.trainer import build_training_set, train_detector  # noqa: E402
+from src.ingestion import SeriesHistory  # noqa: E402
+from src.ingestion.metric_schema import Metric  # noqa: E402
+from src.triage.incident_manager import Incident, IncidentManager  # noqa: E402
+from src.triage.root_cause import Hypothesis  # noqa: E402
+from src.triage.triage_engine import TriageEngine  # noqa: E402
+
 TRAINING_ROUNDS = 25
 TRAINING_SEED = 20260903
 

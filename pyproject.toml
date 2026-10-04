@@ -82,6 +82,10 @@ known-first-party = ["config", "src"]
 minversion = "7.0"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
+# `config` and `src` are first-party packages that live at the repository root.
+# Without this, a bare `pytest` cannot import them: `python -m pytest` happens to
+# put the working directory on sys.path, plain `pytest` does not.
+pythonpath = ["."]
 addopts = "-ra --strict-markers"
 filterwarnings = ["error::DeprecationWarning"]
 
