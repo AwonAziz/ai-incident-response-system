@@ -1,0 +1,100 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-incident-response-system"
+version = "1.0.0"
+description = "Multi-cloud AIOps pipeline: ML anomaly detection, automated triage, incident lifecycle"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Awon Aziz", email = "awonaziz786@gmail.com" }]
+keywords = ["aiops", "anomaly-detection", "incident-response", "isolation-forest", "observability"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: System :: Monitoring",
+]
+dependencies = [
+  "scikit-learn>=1.3.0",
+  "numpy>=1.24.0",
+  "rich>=13.5.0",
+  "apscheduler>=3.10.0",
+  "python-dotenv>=1.0.0",
+  "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4.0", "pytest-cov>=4.1.0", "ruff>=0.6.0"]
+# Uncomment in requirements.txt when replacing the simulated collectors
+# with real cloud SDK integrations.
+# aws = ["boto3>=1.28.0"]
+# azure = ["azure-mgmt-monitor>=6.0.0"]
+# gcp = ["google-cloud-monitoring>=2.15.0"]
+
+[project.scripts]
+incident-response = "main:main"
+
+[tool.setuptools]
+packages = ["config", "src", "scripts"]
+py-modules = ["main"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+src = ["."]
+extend-exclude = [".venv", "venv", "models", "logs"]
+
+[tool.ruff.lint]
+select = [
+  "F",    # pyflakes
+  "E",    # pycodestyle
+  "W",    # warnings
+  "I",    # import sorting
+  "B",    # bugbear
+  "C4",   # comprehensions
+  "UP",   # pyupgrade
+  "SIM",  # simplify
+  "RET",  # return simplification
+  "RUF",  # ruff-specific
+]
+ignore = [
+  "E501",    # long lines are handled by the formatter, not the linter
+  "B008",    # function calls in argument defaults are fine here
+  "RUF001",  # ambiguous unicode in strings (dashboard box drawing)
+  "RUF002",
+  "RUF003",
+  "SIM105",  # contextlib.suppress is not always clearer than try/except
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011", "RUF012"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["config", "src"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-ra --strict-markers"
+filterwarnings = ["error::DeprecationWarning"]
+
+[tool.coverage.run]
+branch = true
+source = ["src", "config"]
+omit = ["*/__init__.py"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+exclude_lines = [
+  "pragma: no cover",
+  "if __name__ == .__main__.:",
+  "raise NotImplementedError",
+]

@@ -20,12 +20,32 @@ ENV/
 .env
 *.env.local
 
-# Model artifacts (large binary — regenerate with train_model.py)
+# Model artefacts (regenerate with: python scripts/train_model.py)
 models/*.pkl
+
+# Generated datasets (regenerate with: --export-sample)
+data/sample/*.json
+
+# Real telemetry fetched by scripts/fetch_nab_dataset.py (1.7 MiB, pinned by sha256)
+data/raw/
+
+# Incident database (SQLite, WAL)
+data/incidents.db*
+
+# Benchmark run records (regenerate with: python scripts/benchmark.py)
+runs/
 
 # Logs
 logs/
 *.log
+
+# Test / coverage output
+.pytest_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
 
 # IDE
 .vscode/
@@ -36,8 +56,3 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
-
-# pytest
-.pytest_cache/
-.coverage
-htmlcov/

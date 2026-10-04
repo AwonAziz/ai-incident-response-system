@@ -1,7 +1,6 @@
 # Core ML
 scikit-learn>=1.3.0
 numpy>=1.24.0
-pandas>=2.0.0
 
 # Dashboard
 rich>=13.5.0
@@ -13,11 +12,18 @@ apscheduler>=3.10.0
 python-dotenv>=1.0.0
 pyyaml>=6.0
 
-# Testing
+# Testing (see requirements-dev.txt for the full dev set)
 pytest>=7.4.0
 pytest-cov>=4.1.0
 
-# Optional — uncomment if integrating with real cloud SDKs
-# boto3>=1.28.0            # AWS
-# azure-mgmt-monitor>=6.0  # Azure
-# google-cloud-monitoring>=2.15.0  # GCP
+# Optional - uncomment when replacing the simulated collectors with real
+# cloud SDK integrations. A new collector only has to subclass
+# src.ingestion.base_collector.BaseCollector and emit Metric objects.
+# boto3>=1.28.0                       # AWS CloudWatch
+# azure-mgmt-monitor>=6.0.0           # Azure Monitor
+# google-cloud-monitoring>=2.15.0     # GCP Cloud Monitoring
+
+# Note: no pandas. The data layer parses CSV/JSON with the standard library
+# (see docs/adr/0004-drop-pandas-dependency.md). Ad-hoc analysis of a downloaded
+# dataset is the one thing that wants a dataframe - install pandas locally for
+# that rather than shipping it to everyone.
