@@ -1,0 +1,23 @@
+{
+  "_comment": "Floors for the nightly benchmark. Measured on 2026-10-04 with the protocol in docs/evaluation.md: IsolationForest ROC AUC 0.616, event recall 0.92, average precision 0.232 on NAB realAWSCloudwatch. The floors sit a little below those numbers so an unrelated fluctuation does not page anyone, but a real regression - a feature change that quietly destroys the signal - fails the job. Update the numbers only when the change is deliberate, and say why in the commit.",
+  "protocol": {
+    "history_window": 288,
+    "train_fraction": 0.4,
+    "alert_rate": 0.02,
+    "contamination": 0.05
+  },
+  "detectors": {
+    "isolation_forest": {
+      "roc_auc_min": 0.55,
+      "average_precision_min": 0.19,
+      "event_recall_min": 0.8
+    },
+    "rolling_zscore": {
+      "roc_auc_min": 0.48
+    },
+    "ewma": {
+      "roc_auc_min": 0.42
+    }
+  },
+  "max_false_alarms_per_day": 20.0
+}

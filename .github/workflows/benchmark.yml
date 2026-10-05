@@ -1,0 +1,124 @@
+# Continuous evaluation on real telemetry.
+#
+# Unit tests prove the code does what it says; they cannot tell you the detector
+# still works. This job fetches the NAB realAWSCloudwatch dataset, re-runs all
+# five detectors over it, and fails if any committed floor is breached - so a
+# feature change that quietly destroys the signal is caught by the next run
+# rather than by an operator noticing a dashboard that stopped highlighting
+# anything.
+#
+# Floors live in config/benchmark_thresholds.json so they are reviewable and
+# changed deliberately, never inline in this file.
+name: benchmark
+
+on:
+  schedule:
+    # 03:17 UTC daily: the realAWSCloudwatch subset has no daily cycle, but the
+    # off-hour slot avoids the top-of-hour GitHub Actions queue.
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+    inputs:
+      history_window:
+        description: "Rolling window length in samples (288 = 24h at 5-minute sampling)"
+        required: false
+        default: "288"
+  pull_request:
+    paths:
+      - "scripts/benchmark.py"
+      - "scripts/check_benchmark_thresholds.py"
+      - "scripts/fetch_nab_dataset.py"
+      - "src/detection/**"
+      - "src/data/**"
+      - "src/ingestion/replay_collector.py"
+      - "config/benchmark_thresholds.json"
+      - "config/cloud_profiles.yaml"
+      - ".github/workflows/benchmark.yml"
+
+concurrency:
+  group: benchmark-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      verdict: ${{ steps.gate.outputs.verdict }}
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: pip install -e . -r requirements.txt
+
+      - name: Cache the benchmark dataset
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: data/raw
+          key: nab-realawscloudwatch-${{ hashFiles('scripts/fetch_nab_dataset.py') }}
+          restore-keys: nab-realawscloudwatch-
+
+      - name: Fetch the labelled dataset
+        run: python scripts/fetch_nab_dataset.py
+
+      - name: Benchmark every detector
+        run: |
+          python scripts/benchmark.py \
+            --history-window "${{ inputs.history_window || '288' }}" \
+            --json \
+            --markdown "${RUNNER_TEMP}/evaluation.md" \
+            --run-tag "ci-${{ github.run_number }}"
+
+      - name: Check the regression gate
+        id: gate
+        run: |
+          set -o pipefail
+          python scripts/check_benchmark_thresholds.py \
+            runs/*.json | tee "${RUNNER_TEMP}/gate.txt"
+          status=${PIPESTATUS[0]}
+          echo "verdict=$( [ "$status" -eq 0 ] && echo pass || echo fail )" >> "$GITHUB_OUTPUT"
+          exit "$status"
+
+      - name: Publish the report
+        if: always()
+        run: |
+          {
+            echo "## Detector benchmark"
+            echo
+            if [ -f "${RUNNER_TEMP}/evaluation.md" ]; then
+              cat "${RUNNER_TEMP}/evaluation.md"
+            else
+              echo "_The benchmark did not produce a report._"
+            fi
+            echo
+            echo "### Regression gate"
+            echo
+            if [ -f "${RUNNER_TEMP}/gate.txt" ]; then
+              echo '```'
+              cat "${RUNNER_TEMP}/gate.txt"
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the run record
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: benchmark-run-${{ github.run_number }}
+          path: |
+            runs/*.json
+            ${{ runner.temp }}/evaluation.md
+            ${{ runner.temp }}/gate.txt
+          if-no-files-found: warn
+          retention-days: 30
