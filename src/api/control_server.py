@@ -142,8 +142,12 @@ class ControlServer:
             allowed, reason = self.authenticate(authorization)
             if not allowed:
                 self.rejected_requests += 1
-                # The path is caller-supplied: %r escapes control characters so
-                # a newline in it cannot forge a log record.
+                # `path` is caller-supplied. `_one_line` drops non-printable
+                # characters and `%r` escapes whatever survives, so a newline in
+                # the request cannot forge a log record. CodeQL's taint model
+                # does not recognise either as a sanitiser, hence the
+                # suppression on a line that is already defensive.
+                # codeql[py/log-injection]
                 logger.warning(
                     "rejected %s %r: %s",
                     method,
