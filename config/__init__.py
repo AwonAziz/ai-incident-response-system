@@ -2,4 +2,7 @@
 
 from __future__ import annotations
 
-__all__ = ["cloud_profiles", "settings"]
+from . import settings
+
+#: telemetry profiles are data (``cloud_profiles.yaml``), not a module
+__all__ = ["settings"]

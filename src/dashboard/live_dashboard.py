@@ -45,6 +45,12 @@ SEVERITY_COLOR: dict[str, str] = {
 
 SPARK_BLOCKS = "▁▂▃▄▅▆▇█"
 
+#: Explicit render order. ``Cloud`` mixes in ``str``, and iterating an enum whose
+#: members are also strings is subtle enough that both a reviewer and CodeQL
+#: reasonably ask what it yields; naming the order makes the layout deterministic
+#: and says "this is the panel order" rather than "this happens to be enum order".
+CLOUD_ORDER: tuple[Cloud, ...] = (Cloud.AWS, Cloud.AZURE, Cloud.GCP)
+
 
 def sparkline(values: Sequence[float], width: int = 12) -> str:
     """Tiny unicode sparkline; renders a flat line for constant/empty input."""
@@ -101,7 +107,7 @@ class LiveDashboard:
         self.metrics_seen = 0
         self.anomalies_seen = 0
         self.feed: deque[dict[str, Any]] = deque(maxlen=12)
-        self._clouds: dict[Cloud, _CloudView] = {cloud: _CloudView() for cloud in Cloud}
+        self._clouds: dict[Cloud, _CloudView] = {cloud: _CloudView() for cloud in CLOUD_ORDER}
         self._last_update = self.started_at
         if subscribe:
             self.incidents.add_listener(self.record_event)
@@ -180,7 +186,7 @@ class LiveDashboard:
 
     def _cloud_panels(self) -> list[RenderableType]:
         panels: list[RenderableType] = []
-        for cloud in Cloud:
+        for cloud in CLOUD_ORDER:
             view = self._clouds[cloud]
             table = Table(box=None, expand=True, pad_edge=False, show_edge=False)
             table.add_column("metric", style="dim", no_wrap=True)

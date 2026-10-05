@@ -28,7 +28,6 @@ from src.triage.root_cause import RootCause, analyze, generate_hints
 
 __all__ = ["TriageEngine", "TriageSettings"]
 
-DEFAULT_SEVERITY_THRESHOLDS: dict[str, float] = {"critical": 8.0, "high": 5.5, "medium": 3.0}
 DEFAULT_SLA_TARGETS: dict[str, float] = {"critical": 15.0, "high": 60.0, "medium": 240.0, "low": 1440.0}
 #: base time-to-resolve estimate (minutes) before the confidence adjustment;
 #: deliberately below the SLA target so `sla_breached` flags *uncertain* cases

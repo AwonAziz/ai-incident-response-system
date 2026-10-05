@@ -5,8 +5,8 @@ from __future__ import annotations
 from typing import Any, ClassVar
 
 from src.core.enums import Severity
+from src.notifications.base import BaseNotifier
 from src.notifications.http_client import post_json
-from src.notifications.notifier import BaseNotifier
 from src.triage.incident_manager import Incident
 
 __all__ = ["SlackNotifier"]

@@ -35,6 +35,9 @@ from src.core.enums import Cloud
 
 __all__ = [
     "METRIC_NAMES",
+    "NAB_BRANCH",
+    "NAB_DATASET",
+    "NAB_REPO",
     "UNIT_LABELS",
     "AnomalyWindow",
     "LabelledSeries",
@@ -251,16 +254,14 @@ def parse_timestamp(value: str) -> datetime:
     try:
         parsed = datetime.fromisoformat(normalised)
     except ValueError:
-        parsed = None  # fall through to the explicit formats below
-    else:
-        return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
-    for fmt in TIMESTAMP_FORMATS:
-        try:
-            naive = datetime.strptime(token, fmt)
-        except ValueError:
-            continue
-        return naive.replace(tzinfo=timezone.utc)
-    raise ValueError(f"unrecognised timestamp: {value!r}")
+        for fmt in TIMESTAMP_FORMATS:
+            try:
+                naive = datetime.strptime(token, fmt)
+            except ValueError:
+                continue
+            return naive.replace(tzinfo=timezone.utc)
+        raise ValueError(f"unrecognised timestamp: {value!r}") from None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
 
 
 def metric_name_for(file_stem: str) -> str:

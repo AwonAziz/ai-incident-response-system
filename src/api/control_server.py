@@ -142,7 +142,14 @@ class ControlServer:
             allowed, reason = self.authenticate(authorization)
             if not allowed:
                 self.rejected_requests += 1
-                logger.warning("rejected %s %s: %s", method, path, reason)
+                # The path is caller-supplied: a newline in it would forge a log
+                # line, so it is flattened before it reaches a handler.
+                logger.warning(
+                    "rejected %s %s: %s",
+                    method,
+                    _one_line(path),
+                    reason,
+                )
                 return self._error(HTTPStatus.UNAUTHORIZED, reason)
 
         if route in self.PUBLIC_ROUTES:
@@ -347,3 +354,9 @@ def _int_arg(query: dict[str, list[str]], name: str, default: int) -> int:
         return int(raw)
     except ValueError:
         return default
+
+
+def _one_line(value: str, limit: int = 200) -> str:
+    """Flatten caller-supplied text so it cannot forge a log record."""
+    flattened = "".join(character if character.isprintable() else " " for character in value)
+    return flattened[:limit]

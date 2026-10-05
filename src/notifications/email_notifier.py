@@ -7,7 +7,7 @@ from email.message import EmailMessage
 from typing import Any, ClassVar
 
 from src.core.enums import Severity
-from src.notifications.notifier import BaseNotifier
+from src.notifications.base import BaseNotifier
 from src.triage.incident_manager import Incident
 
 __all__ = ["EmailNotifier"]
