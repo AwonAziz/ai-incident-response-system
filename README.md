@@ -271,17 +271,18 @@ ai-incident-response-system/
 ├── scripts/
 │   ├── fetch_nab_dataset.py     # download + sha256 manifest for the real dataset
 │   ├── benchmark.py             # detector comparison on real data
+│   ├── check_benchmark_thresholds.py  # regression gate for the benchmark
 │   ├── train_model.py           # training + labelled evaluation CLI
 │   └── simulate_incident.py     # generate/push anomalies
 ├── docs/
 │   ├── evaluation.md            # generated benchmark report
 │   └── adr/                     # decisions, with the reasoning
-├── tests/                       # 385 tests across 11 modules (95% coverage)
+├── tests/                       # 455 tests across 13 modules (95% coverage)
 ├── models/                      # isolation_forest.pkl (generated, git-ignored)
-├── data/raw/                    # fetched NAB dataset (generated, git-ignored)
+├── data/                        # fetched dataset + incident database (git-ignored)
 ├── runs/                        # benchmark run records (generated, git-ignored)
 ├── Dockerfile / docker-compose.yml
-└── .github/workflows/ci.yml     # lint + tests on 3.10-3.13, plus a smoke run
+└── .github/workflows/           # ci, nightly benchmark gate, security scanning
 ```
 
 ---
@@ -538,27 +539,49 @@ control API rather than faking them locally.
 ```bash
 pip install -r requirements.txt -r requirements-dev.txt
 
-pytest -q                                   # 426 tests, ~35s
+pytest -q                                   # 455 tests, ~40s
 pytest --cov=config --cov=src --cov-report=term-missing
 ruff check .                                # lint (config in pyproject.toml)
 
 # benchmark on real data (needs the dataset, fetched once)
 python scripts/fetch_nab_dataset.py
 python scripts/benchmark.py --markdown docs/evaluation.md
+python scripts/check_benchmark_thresholds.py runs/*.json
 ```
 
 The suite is organised by layer - `test_core`, `test_config`, `test_data`,
 `test_ingestion`, `test_detection`, `test_evaluation`, `test_triage`,
-`test_store`, `test_notifications`, `test_dashboard`, `test_pipeline`, `test_api` -
-and uses a
-`ManualClock` plus a fixed RNG seed, so dedup windows, SLA maths, retry backoff,
-auto-resolution and the evaluation maths are all tested deterministically and
-instantly. No test performs real network I/O, and the benchmark is opt-in rather
-than part of the test path.
+`test_store`, `test_benchmark_gate`, `test_notifications`, `test_dashboard`,
+`test_pipeline`, `test_api` - and uses a `ManualClock` plus a fixed RNG seed, so
+dedup windows, SLA maths, retry backoff, auto-resolution and the evaluation
+maths are all tested deterministically and instantly. No test performs real
+network I/O, and the benchmark is opt-in rather than part of the test path.
 
-CI (`.github/workflows/ci.yml`) lints, runs the suite on Python 3.10-3.13 with
-coverage, then trains the model and exercises the pipeline plus the control API
-end to end.
+### Continuous integration
+
+| Workflow | Trigger | What it gates |
+| --- | --- | --- |
+| `ci.yml` | push, PR | ruff, the suite on Python 3.10-3.13 with coverage, then a smoke job that trains a model, runs the pipeline headless and pushes an incident through the control API |
+| `benchmark.yml` | nightly 03:17 UTC, manual, path-filtered PRs | re-runs all five detectors on the real dataset and **fails if a committed floor is breached** |
+| `security.yml` | push, PR, weekly | CodeQL `security-and-quality` for Python, a gating `pip-audit` on runtime requirements, and a report-only audit of the resolved environment |
+
+The benchmark gate is the interesting one. Unit tests prove the code does what it
+says; they cannot tell you the detector still works. So the nightly job
+re-measures ROC AUC, average precision, event recall and false-alarm rate
+against the floors in `config/benchmark_thresholds.json`, and a feature change
+that quietly destroys the signal turns the build red. A floor that *cannot be
+evaluated* - a missing metric, a missing detector - fails the gate too, because a
+regression gate that skips what it cannot measure is a gate that silently goes
+green.
+
+```bash
+# reproduce a nightly failure locally
+python scripts/benchmark.py --history-window 288 --json
+python scripts/check_benchmark_thresholds.py runs/*.json   # exit 1 on regression
+```
+
+All third-party actions are pinned to commit SHAs rather than tags, so a moved
+tag cannot turn the security workflow into an attack vector.
 
 ---
 

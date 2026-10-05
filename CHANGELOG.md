@@ -40,7 +40,14 @@ split, operating points from training quantiles, point and event metrics, and a
 leave-one-out feature ablation. `docs/evaluation.md` holds the generated report;
 `docs/adr/` records the reasoning behind each decision.
 
-**Project** - 426 tests at 95% branch coverage, ruff-clean, CI across Python
+**Continuous evaluation** - a nightly workflow re-runs all five detectors on the
+real dataset and fails if a committed floor in `config/benchmark_thresholds.json`
+is breached; a floor that cannot be evaluated fails too, because a gate that
+skips what it cannot measure is a gate that silently goes green. Static analysis
+(CodeQL `security-and-quality`) and a gating `pip-audit` cover the dependency and
+security surface, and every third-party action is pinned to a commit SHA.
+
+**Project** - 455 tests at 95% branch coverage, ruff-clean, CI across Python
 3.10-3.13 including an end-to-end smoke run, a non-root container image with a
 healthcheck, and a README that reports measured numbers with their caveats
 attached.
