@@ -1,0 +1,88 @@
+# Static analysis and dependency auditing.
+#
+# A pipeline that can inject incidents and resolve them is a privileged service,
+# so the review of it should start with the same questions as any other:
+# what does the code do, and which libraries is it trusting?
+#
+# Actions are pinned to commit SHAs rather than tags. A tag can be moved after
+# review; a SHA cannot, so this workflow cannot be turned into an attack by
+# repointing somebody else's release.
+name: security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Weekly, off-hour: new CVEs are published continuously and the dependency
+    # audit should not compete with the benchmark slot at 03:17.
+    - cron: "41 4 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  codeql:
+    name: CodeQL (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [python]
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Initialise CodeQL
+        uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4
+        with:
+          languages: ${{ matrix.language }}
+          # The detector and the evaluation harness are the parts where a bug
+          # would quietly change reported numbers, so queries that only run on
+          # "tests" would hide exactly the interesting cases.
+          queries: security-and-quality
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4
+        with:
+          category: "/language:${{ matrix.language }}"
+
+  dependencies:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Audit runtime dependencies
+        run: |
+          pip install --quiet pip-audit
+          # Runtime requirements only: a CVE in a test-only dependency is not a
+          # CVE in the service, and mixing the two trains people to ignore red.
+          pip-audit --requirement requirements.txt --progress-spinner off
+
+      - name: Audit the resolved environment
+        # Report only: a newly published advisory against a transitive test
+        # dependency should not block an unrelated change on the same day. The
+        # strict audit above is the gate; this one is early warning.
+        continue-on-error: true
+        run: |
+          pip install --quiet -e .
+          pip-audit --local --progress-spinner off --desc
