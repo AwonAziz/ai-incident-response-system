@@ -142,10 +142,10 @@ class ControlServer:
             allowed, reason = self.authenticate(authorization)
             if not allowed:
                 self.rejected_requests += 1
-                # The path is caller-supplied: a newline in it would forge a log
-                # line, so it is flattened before it reaches a handler.
+                # The path is caller-supplied: %r escapes control characters so
+                # a newline in it cannot forge a log record.
                 logger.warning(
-                    "rejected %s %s: %s",
+                    "rejected %s %r: %s",
                     method,
                     _one_line(path),
                     reason,

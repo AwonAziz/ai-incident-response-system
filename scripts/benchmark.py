@@ -131,6 +131,15 @@ def markdown_table(report: dict) -> str:
 def markdown_report(report: dict, series) -> str:
     protocol = report["protocol"]
     dataset = report["dataset"]
+    per_series_caveat = (
+        "* each model trains on the training slice of the same series: there is no cross-series "
+        "transfer, so these numbers are a lower bound on what a pooled model would achieve"
+    )
+    normal_only_intro = (
+        "The benchmark ships series whose evaluation slice contains no anomaly at all (including one "
+        "control series with no windows). They cannot contribute recall, but they are the cleanest "
+        "measure of how often an on-call engineer would have been paged for nothing."
+    )
     lines = [
         "# Benchmark: real AWS CloudWatch telemetry",
         "",
@@ -159,8 +168,7 @@ def markdown_report(report: dict, series) -> str:
         "## Caveats",
         "",
         *(f"* {warning}" for warning in report["warnings"]),
-        "* the model trains per series, on that series' own history; there is no cross-series "
-        "transfer, so these numbers are a lower bound on what a pooled model would do",
+        per_series_caveat,
         "",
         "## Per-series event recall",
         "",
@@ -176,9 +184,7 @@ def markdown_report(report: dict, series) -> str:
         "",
         "## False alarms on normal-only series",
         "",
-        "The benchmark ships series whose evaluation slice contains no anomaly at all (including one "
-        "control series with no windows). They cannot contribute recall, but they are the cleanest "
-        "measure of what an on-call engineer would have been paged for.",
+        normal_only_intro,
         "",
         "| detector | false alarms/day |",
         "| --- | --- |",

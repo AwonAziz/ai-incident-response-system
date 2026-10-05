@@ -7,14 +7,11 @@ to the project.
 from __future__ import annotations
 
 import json
-import logging
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 __all__ = ["post_json"]
-
-logger = logging.getLogger(__name__)
 
 
 class DeliveryError(RuntimeError):

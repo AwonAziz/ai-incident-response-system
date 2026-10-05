@@ -27,13 +27,17 @@ def sleep(seconds: float) -> None:  # pragma: no cover - trivial
 
 @runtime_checkable
 class Clock(Protocol):
-    """Minimal time source."""
+    """Minimal time source.
+
+    The methods carry docstrings rather than ``...`` so static analysis does not
+    read a docstring-only body as a no-op statement.
+    """
 
     def now(self) -> datetime:  # pragma: no cover - protocol definition
-        ...
+        """Current time as an aware datetime."""
 
     def sleep(self, seconds: float) -> None:  # pragma: no cover - protocol definition
-        ...
+        """Wait for the given number of seconds."""
 
 
 class SystemClock:
